@@ -1,9 +1,11 @@
 """
-Build three charts (PNGs in charts/):
+Build three charts (PNGs in charts/). Each chart must communicate
+in 1 second what is being measured, who is in the universe, and what
+the finding is.
 
-  chart_barriers.png      ── Why EU enterprises don't adopt AI
-  chart_size_gap.png      ── AI adoption: small vs large by country
-  chart_genai_reality.png ── EU GenAI use in production
+  chart_barriers.png      ── Why EU enterprises don't adopt AI (cost ranks 6th)
+  chart_size_gap.png      ── AI adoption: small vs large enterprise by country
+  chart_genai_reality.png ── EU GenAI use in production is 5.41%
 
 Run from repo root:  python scripts/chart.py
 """
@@ -40,16 +42,18 @@ BG = "#FFFFFF"
 
 
 def add_titles(fig, title, subtitle):
-    fig.text(0.06, 0.965, title, fontsize=17, fontweight="bold", color=INK, ha="left", va="top")
-    fig.text(0.06, 0.918, subtitle, fontsize=11.5, color="#444", style="italic", ha="left", va="top")
+    fig.text(0.06, 0.965, title, fontsize=18, fontweight="bold", color=INK, ha="left", va="top")
+    fig.text(0.06, 0.918, subtitle, fontsize=12, color="#333", ha="left", va="top")
 
 
 def add_footer(fig, source, credit="Chart by Santiago Patiño Serna"):
-    fig.text(0.06, 0.02, source, fontsize=8.5, color="#666", ha="left", va="bottom", linespacing=1.5)
-    fig.text(0.98, 0.02, credit, fontsize=8.5, color="#666", ha="right", va="bottom")
+    fig.text(0.06, 0.015, source, fontsize=8.5, color="#666", ha="left", va="bottom", linespacing=1.5)
+    fig.text(0.98, 0.015, credit, fontsize=8.5, color="#666", ha="right", va="bottom")
 
 
-# ---------- CHART 1: barriers ----------
+# ===================================================================
+# CHART 1 — Barriers
+# ===================================================================
 barriers = [
     ("Lack of relevant expertise",            70.89),
     ("Lack of clarity on legal consequences", 52.52),
@@ -62,40 +66,55 @@ barriers = [
 ]
 labels = [b[0] for b in barriers][::-1]
 values = [b[1] for b in barriers][::-1]
-colors = [HIGHLIGHT if v == 70.89 else MUTED for v in values]
+colors = [HIGHLIGHT if v == 70.89 else ("#F4A23E" if v == 33.34 else MUTED) for v in values]
 
-fig, ax = plt.subplots(figsize=(10.5, 7.2), dpi=200)
+fig, ax = plt.subplots(figsize=(11, 7.5), dpi=200)
 fig.patch.set_facecolor(BG); ax.set_facecolor(BG)
-fig.subplots_adjust(left=0.30, right=0.96, top=0.84, bottom=0.14)
+fig.subplots_adjust(left=0.30, right=0.96, top=0.80, bottom=0.16)
 
 bars = ax.barh(labels, values, color=colors, edgecolor="none", height=0.72)
-for bar, v in zip(bars, values):
+for bar, v, l in zip(bars, values, labels):
+    is_top = (v == 70.89)
+    is_cost = (l == "Cost too high")
+    color = HIGHLIGHT if is_top else ("#F4A23E" if is_cost else INK)
+    weight = "bold" if (is_top or is_cost) else "normal"
     ax.text(v + 1, bar.get_y() + bar.get_height()/2, f"{v:.1f}%",
-            va="center", ha="left", fontsize=11,
-            color=HIGHLIGHT if v == 70.89 else INK,
-            fontweight="bold" if v == 70.89 else "normal")
-ax.set_xlim(0, 82)
-ax.set_xlabel("% of EU enterprises (that considered AI) citing this barrier",
-              fontsize=10, color="#555", labelpad=10)
+            va="center", ha="left", fontsize=11.5,
+            color=color, fontweight=weight)
+
+cost_y_idx = labels.index("Cost too high")
+ax.annotate("Cost ranks 6th — 37 points\nbehind 'lack of expertise'",
+            xy=(33.34, cost_y_idx), xytext=(50, cost_y_idx - 1.7),
+            fontsize=10.5, color="#B8650A", fontweight="bold",
+            ha="left", va="center",
+            arrowprops=dict(arrowstyle="->", color="#F4A23E", lw=1.5,
+                            connectionstyle="arc3,rad=-0.2"))
+
+ax.set_xlim(0, 92)
+ax.set_xlabel("Share of enterprises citing this reason  (%)",
+              fontsize=10.5, color="#444", labelpad=10)
+
 add_titles(fig,
-           "Why EU companies don't adopt AI",
-           "It's not cost. It's people who can ship it.")
+           "Why EU companies don't adopt AI — the real reasons",
+           "Among EU enterprises that CONSIDERED adopting AI in 2024, the % citing each reason for not going through with it.")
 add_footer(fig,
            "Source: Eurostat — isoc_eb_ai, 2024 reference year, published 2026-02-27.\n"
-           "Base: EU27 enterprises with ≥10 employees that ever considered using AI (PC_ENT_AI_EC).")
+           "Base: EU27 enterprises with ≥10 employees that considered using AI (PC_ENT_AI_EC). Respondents could cite multiple reasons.")
 plt.savefig(os.path.join(CHARTS_DIR, "chart_barriers.png"), dpi=200, facecolor=BG)
 print("Saved charts/chart_barriers.png"); plt.close()
 
 
-# ---------- CHART 2: small vs large dumbbell ----------
+# ===================================================================
+# CHART 2 — Size gap dumbbell
+# ===================================================================
 df_gap = pd.read_csv(os.path.join(DATA_DIR, "ai_adoption_country_size_gap.csv"))
 df_gap = df_gap.dropna(subset=["small_10_49", "large_250plus"]).copy()
 df_gap = df_gap.sort_values("small_10_49", ascending=True).reset_index(drop=True)
 HILITE = {"Spain": HIGHLIGHT, "France": "#F39C12"}
 
-fig, ax = plt.subplots(figsize=(10.5, 11.5), dpi=200)
+fig, ax = plt.subplots(figsize=(11, 12), dpi=200)
 fig.patch.set_facecolor(BG); ax.set_facecolor(BG)
-fig.subplots_adjust(left=0.22, right=0.96, top=0.92, bottom=0.08)
+fig.subplots_adjust(left=0.22, right=0.96, top=0.90, bottom=0.10)
 
 y = np.arange(len(df_gap))
 for i, row in df_gap.iterrows():
@@ -104,11 +123,11 @@ for i, row in df_gap.iterrows():
     dot_small = color_lbl if color_lbl else "#6B7280"
     dot_large = color_lbl if color_lbl else INK
     ax.hlines(i, row["small_10_49"], row["large_250plus"],
-              color=line_color, linewidth=2.4, alpha=0.85, zorder=1)
-    ax.scatter(row["small_10_49"], i, s=70, color=dot_small, zorder=2,
-               edgecolor="white", linewidth=0.8)
-    ax.scatter(row["large_250plus"], i, s=110, color=dot_large, zorder=3,
-               edgecolor="white", linewidth=0.8)
+              color=line_color, linewidth=2.6, alpha=0.85, zorder=1)
+    ax.scatter(row["small_10_49"], i, s=80, color=dot_small, zorder=2,
+               edgecolor="white", linewidth=1)
+    ax.scatter(row["large_250plus"], i, s=130, color=dot_large, zorder=3,
+               edgecolor="white", linewidth=1)
 
 display_labels = [
     lbl.replace("European Union - 27 countries (from 2020)", "EU27")
@@ -116,28 +135,43 @@ display_labels = [
     for lbl in df_gap["geo_label"]
 ]
 ax.set_yticks(y)
-ax.set_yticklabels(display_labels, fontsize=9.5)
+ax.set_yticklabels(display_labels, fontsize=10)
 for tick, lbl in zip(ax.get_yticklabels(), df_gap["geo_label"]):
     if lbl in HILITE:
         tick.set_color(HILITE[lbl]); tick.set_fontweight("bold")
-ax.set_xlim(0, 75)
-ax.set_xlabel("% of enterprises using at least one AI technology, 2024",
-              fontsize=10, color="#555", labelpad=10)
+
+spain_idx = df_gap.index[df_gap["geo_label"] == "Spain"].tolist()
+if spain_idx:
+    si = spain_idx[0]
+    ax.annotate(f"Spain: 5.1× gap\n(8.6% small → 44.0% large)",
+                xy=(43.96, si), xytext=(54, si + 1.5),
+                fontsize=10.5, color=HIGHLIGHT, fontweight="bold",
+                ha="left", va="center",
+                arrowprops=dict(arrowstyle="->", color=HIGHLIGHT, lw=1.4,
+                                connectionstyle="arc3,rad=0.2"))
+
+ax.set_xlim(0, 80)
+ax.set_xlabel("Share of enterprises using at least one AI technology  (%)",
+              fontsize=10.5, color="#444", labelpad=10)
+
 small_dot = mpatches.Patch(color="#6B7280", label="Small (10–49 employees)")
 large_dot = mpatches.Patch(color=INK,       label="Large (250+ employees)")
 ax.legend(handles=[small_dot, large_dot], loc="lower right",
-          frameon=False, fontsize=10)
+          frameon=False, fontsize=10.5)
+
 add_titles(fig,
-           "The AI mid-market gap is structural, not cultural",
-           "Small enterprises (10–49) vs large (250+) — 32 European countries, 2024")
+           "The bigger the company, the more AI it uses",
+           "Gap between small (10–49 employees) and large (250+) in each country — 2024, 32 countries.")
 add_footer(fig,
            "Source: Eurostat — isoc_eb_ai, 2024 reference year, published 2026-02-27.\n"
-           "Indicator E_AI_TANY, unit PC_ENT (% of enterprises in size class).")
+           "Indicator E_AI_TANY (uses at least one AI tech), unit PC_ENT (% of enterprises in each size class).")
 plt.savefig(os.path.join(CHARTS_DIR, "chart_size_gap.png"), dpi=200, facecolor=BG)
 print("Saved charts/chart_size_gap.png"); plt.close()
 
 
-# ---------- CHART 3: GenAI reality ----------
+# ===================================================================
+# CHART 3 — GenAI reality
+# ===================================================================
 genai = [
     ("ML / deep learning",   4.24),
     ("Image recognition",    3.23),
@@ -151,24 +185,34 @@ labels3 = [b[0] for b in genai]
 values3 = [b[1] for b in genai]
 colors3 = [HIGHLIGHT if "GenAI" in l else MUTED for l in labels3]
 
-fig, ax = plt.subplots(figsize=(10.5, 6), dpi=200)
+fig, ax = plt.subplots(figsize=(11, 6.5), dpi=200)
 fig.patch.set_facecolor(BG); ax.set_facecolor(BG)
-fig.subplots_adjust(left=0.22, right=0.96, top=0.82, bottom=0.20)
+fig.subplots_adjust(left=0.22, right=0.96, top=0.78, bottom=0.20)
 
 bars = ax.barh(labels3, values3, color=colors3, edgecolor="none", height=0.65)
 for bar, v, l in zip(bars, values3, labels3):
     ax.text(v + 0.15, bar.get_y() + bar.get_height()/2, f"{v:.2f}%",
-            va="center", ha="left", fontsize=11,
+            va="center", ha="left", fontsize=11.5,
             color=HIGHLIGHT if "GenAI" in l else INK,
             fontweight="bold" if "GenAI" in l else "normal")
-ax.set_xlim(0, 9)
-ax.set_xlabel("% of EU27 enterprises (10+ employees) using this AI technology, 2024",
-              fontsize=10, color="#555", labelpad=10)
+
+genai_idx = labels3.index("GenAI text/code")
+ax.annotate("ChatGPT launched\nNov 2022. 41 months later:\n1 in 20 EU enterprises.",
+            xy=(5.41, genai_idx), xytext=(6.8, genai_idx - 1.3),
+            fontsize=10.5, color=HIGHLIGHT, fontweight="bold",
+            ha="left", va="center",
+            arrowprops=dict(arrowstyle="->", color=HIGHLIGHT, lw=1.4,
+                            connectionstyle="arc3,rad=-0.2"))
+
+ax.set_xlim(0, 11)
+ax.set_xlabel("Share of EU enterprises (10+ employees) using this technology in 2024  (%)",
+              fontsize=10.5, color="#444", labelpad=10)
+
 add_titles(fig,
            "GenAI is mainstream on LinkedIn. Not in EU production.",
-           "Only 5.41% of EU enterprises generate text or code with AI. ChatGPT shipped in 2022.")
+           "Share of EU27 enterprises (10+ employees) using each AI technology in production in 2024.")
 add_footer(fig,
            "Source: Eurostat — isoc_eb_ai, 2024 reference year, published 2026-02-27.\n"
-           "Indicators E_AI_TML, E_AI_TIR, E_AI_TSR, E_AI_TTM, E_AI_TNLG, E_AI_TPA. PC_ENT base.")
+           "Indicators E_AI_TML, E_AI_TIR, E_AI_TSR, E_AI_TTM, E_AI_TNLG, E_AI_TPA. Unit PC_ENT (% of all EU27 enterprises in size class).")
 plt.savefig(os.path.join(CHARTS_DIR, "chart_genai_reality.png"), dpi=200, facecolor=BG)
 print("Saved charts/chart_genai_reality.png"); plt.close()
