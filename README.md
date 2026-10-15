@@ -127,6 +127,7 @@ No API key needed. Eurostat's REST API is free and open.
 ## Methodology & caveats
 
 - **Source.** Eurostat `isoc_eb_ai` — public dataset, reference year 2024, published 2026-02-27.
+- **Snapshot.** The numbers above come from the 2026-02-27 release (16,721 data cells). Eurostat updated the dataset on 2026-06-15 and added Albania (210 new cells). I re-ran the pipeline on the new release: no existing value changed, so every figure in this README still holds. `fetch.py` always pulls the latest release, so a fresh run will include Albania (33 countries instead of 32).
 - **Geographic scope.** EU27 + EFTA + selected candidate countries (32 with country-level data).
 - **Sector scope.** NACE Rev. 2 sections C10–S95 excluding K (financial). Industry + services aggregate.
 - **Sample.** Enterprises with ≥10 employees. Micro-enterprises (<10) excluded by the headline indicator.
