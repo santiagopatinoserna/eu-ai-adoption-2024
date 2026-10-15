@@ -147,6 +147,6 @@ No API key needed. Eurostat's REST API is free and open.
 
 ## Author
 
-Santiago Patiño Serna — [LinkedIn](https://www.linkedin.com/in/santiagopatinoserna/)
+Santiago Patiño Serna — [LinkedIn](https://www.linkedin.com/in/santiago-patino/)
 
 Issues and PRs welcome. If you re-run this for a different country cut or a different year, send a PR.
